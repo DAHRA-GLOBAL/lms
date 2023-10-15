@@ -17,7 +17,11 @@ class LessonController extends Controller
      */
     public function index()
     {
-        //
+        $lessons = Lesson::all();
+        foreach ($lessons as $lesson) {
+            $lesson->image = asset($lesson->image);
+        }
+        return $lesson;
     }
 
     /**

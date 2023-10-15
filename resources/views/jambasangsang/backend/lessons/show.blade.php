@@ -8,6 +8,7 @@
                 </div>
                 <div class="fa fa-twitter wtt-mark"></div>
 
+                @if($course)
                 <div class="media">
                     <a href="#">
                         <img class="align-self-center rounded-circle mr-3" style="width:85px; height:85px;" alt=""
@@ -18,6 +19,7 @@
                         <p class="text-light">{{ $course->teacher->assignRoles() }}</p>
                     </div>
                 </div>
+                @endif
 
             </div>
             <div class="weather-category twt-category">
