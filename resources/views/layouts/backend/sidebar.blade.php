@@ -79,27 +79,27 @@
                     @endcan
                 @endif
 
-                @if (auth()->user()->can('view_students') ||
-                    auth()->user()->can('view_teachers') ||
-                    auth()->user()->can('view_users'))
-                    <h3 class="menu-title">@lang('Manage Activities')</h3><!-- /.menu-title -->
-                    @can('view_events')
-                        <li class="{{ is_active('events.*') }}">
-                            <a href="{{ route('events.index') }}"> <i
-                                    class="menu-icon fa fa-calendar"></i>@lang('Events')
-                                <span class="count bg-danger">{{ count($notificationEvents) }}</span>
-                            </a>
-                        </li>
-                    @endcan
+{{--                @if (auth()->user()->can('view_students') ||--}}
+{{--                    auth()->user()->can('view_teachers') ||--}}
+{{--                    auth()->user()->can('view_users'))--}}
+{{--                    <h3 class="menu-title">@lang('Manage Activities')</h3><!-- /.menu-title -->--}}
+{{--                    @can('view_events')--}}
+{{--                        <li class="{{ is_active('events.*') }}">--}}
+{{--                            <a href="{{ route('events.index') }}"> <i--}}
+{{--                                    class="menu-icon fa fa-calendar"></i>@lang('Events')--}}
+{{--                                <span class="count bg-danger">{{ count($notificationEvents) }}</span>--}}
+{{--                            </a>--}}
+{{--                        </li>--}}
+{{--                    @endcan--}}
 
-                    @can('view_news')
-                        <li class="{{ is_active('newses.*') }}">
-                            <a href="{{ route('newses.index') }}"> <i
-                                    class="menu-icon fa fa-newspaper-o"></i>@lang('News')
-                                <span class="count bg-danger">{{ count($notificationNews) }}</span></a>
-                        </li>
-                    @endcan
-                @endif
+{{--                    @can('view_news')--}}
+{{--                        <li class="{{ is_active('newses.*') }}">--}}
+{{--                            <a href="{{ route('newses.index') }}"> <i--}}
+{{--                                    class="menu-icon fa fa-newspaper-o"></i>@lang('News')--}}
+{{--                                <span class="count bg-danger">{{ count($notificationNews) }}</span></a>--}}
+{{--                        </li>--}}
+{{--                    @endcan--}}
+{{--                @endif--}}
 
                 @if (auth()->user()->can('view_settings'))
                     <h3 class="menu-title">@lang('Settings')</h3><!-- /.menu-title -->

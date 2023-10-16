@@ -13,6 +13,7 @@
         "anhskohbo/no-captcha": "^3.4",
         "beyondcode/laravel-websockets": "^1.13",
         "creativeorange/gravatar": "~1.0",
+        "devianl2/laravel-scorm": "^4.0",
         "guzzlehttp/guzzle": "^7.2",
         "jambasangsang/flash": "^1.0",
         "jenssegers/agent": "^2.6",

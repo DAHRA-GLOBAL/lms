@@ -13,31 +13,31 @@
                     </form>
                 </div>
 
-                <div class="dropdown for-notification">
-                    <button class="btn btn-secondary dropdown-toggle" type="button" id="notification"
-                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        <i class="fa fa-bell"></i>
-                        <span
-                            class="count bg-danger">{{ count($notificationEvents) + count($notificationNews) }}</span>
-                    </button>
-                    <div class="dropdown-menu" aria-labelledby="notification">
-                        <p class="red">@lang('You have ' . count($notificationEvents) + count($notificationNews) . ' Notification') </p>
-                        @foreach ($notificationNews as $latestNews)
-                            <a class="dropdown-item media bg-flat-color-1"
-                                href="{{ route('newses.show', [$latestNews->slug]) }}">
-                                <i class="fa fa-check"></i>
-                                <p>{{ $latestNews->title }}</p>
-                            </a>
-                        @endforeach
-                        @foreach ($notificationEvents as $latestEvent)
-                            <a class="dropdown-item media bg-flat-color-1"
-                                href="{{ route('events.show', [$latestEvent->slug]) }}">
-                                <i class="fa fa-check"></i>
-                                <p>{{ $latestEvent->title }}</p>
-                            </a>
-                        @endforeach
-                    </div>
-                </div>
+{{--                <div class="dropdown for-notification">--}}
+{{--                    <button class="btn btn-secondary dropdown-toggle" type="button" id="notification"--}}
+{{--                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">--}}
+{{--                        <i class="fa fa-bell"></i>--}}
+{{--                        <span--}}
+{{--                            class="count bg-danger">{{ count($notificationEvents) + count($notificationNews) }}</span>--}}
+{{--                    </button>--}}
+{{--                    <div class="dropdown-menu" aria-labelledby="notification">--}}
+{{--                        <p class="red">@lang('You have ' . count($notificationEvents) + count($notificationNews) . ' Notification') </p>--}}
+{{--                        @foreach ($notificationNews as $latestNews)--}}
+{{--                            <a class="dropdown-item media bg-flat-color-1"--}}
+{{--                                href="{{ route('newses.show', [$latestNews->slug]) }}">--}}
+{{--                                <i class="fa fa-check"></i>--}}
+{{--                                <p>{{ $latestNews->title }}</p>--}}
+{{--                            </a>--}}
+{{--                        @endforeach--}}
+{{--                        @foreach ($notificationEvents as $latestEvent)--}}
+{{--                            <a class="dropdown-item media bg-flat-color-1"--}}
+{{--                                href="{{ route('events.show', [$latestEvent->slug]) }}">--}}
+{{--                                <i class="fa fa-check"></i>--}}
+{{--                                <p>{{ $latestEvent->title }}</p>--}}
+{{--                            </a>--}}
+{{--                        @endforeach--}}
+{{--                    </div>--}}
+{{--                </div>--}}
 
                 <div class="dropdown for-message">
                     <button class="btn btn-secondary dropdown-toggle" type="button" id="message"

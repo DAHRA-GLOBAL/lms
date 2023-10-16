@@ -7,9 +7,23 @@ use Illuminate\Http\Request;
 use App\Http\Requests\StoreLessonRequest;
 use App\Models\Lesson;
 use Jambasangsang\Flash\Facades\LaravelFlash;
+use Peopleaps\Scorm\Manager\ScormManager;
+use Peopleaps\Scorm\Model\ScormModel;
+
 
 class LessonController extends Controller
 {
+
+    /** @var ScormManager */
+    private $scormManager;
+
+    /**
+     * ScormController constructor.
+     */
+    public function __construct( ScormManager $scormManager)
+    {
+        $this->scormManager = $scormManager;
+    }
     /**
      * Display a listing of the resource.
      *
@@ -42,9 +56,17 @@ class LessonController extends Controller
      */
     public function store(StoreLessonRequest $request)
     {
+
+        $uploadedFile = $request->file('image');
+        $scormModel = $this->scormManager->uploadScormArchive($uploadedFile);
+        $scormModel->resource_type = 'lesson';
+        $scormModel->resource_id = $request->id;
+
+        dd($scormModel);
         $lesson = Lesson::create($request->validated());
         $lesson->image  = uploadOrUpdateFile($request, $lesson->image, \constPath::LessonImage);
         $lesson->save();
+
         LaravelFlash::withSuccess('Lesson Created Successfully');
         return redirect()->route('courses.show', [$request->slug]);
     }

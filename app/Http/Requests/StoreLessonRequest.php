@@ -28,7 +28,7 @@ class StoreLessonRequest extends FormRequest
             'content' => 'required|string',
             'course_id' => 'required|integer|exists:courses,id',
             'status' => 'required|string',
-            'image' => 'nullable|image',
+            'image' => 'nullable|mimes:zip',
 
         ];
     }
