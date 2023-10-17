@@ -162,7 +162,7 @@ class LessonController extends Controller
         $data['lmsUrl'] = url('scorm/track');
         $data['player'] = (object) [
             'autoCommit' => (bool) $token,
-            'lmsCommitUrl' => $token ? url('scorm/track', $data->uuid) : false,
+            'lmsCommitUrl' => $token ? url('scorm/track', $data->uuid) : url('scorm/track/'. $data->uuid),
             'xhrHeaders' => [
                 'Authorization' => $token ? ('Bearer '.$token) : null,
             ],
@@ -178,7 +178,7 @@ class LessonController extends Controller
         return $this
             ->getScormFieldStrategy($data->scorm->version)
             ->getCmiData(
-                $this->getScormTrack($data->getKey(), $userId)
+                $this->getScormTrack($data->getKey(), auth()->user()->id),
             );
     }
     private function getScormTrack(int $scoId, ?int $userId): ?ScormScoTrackingModel
@@ -187,7 +187,7 @@ class LessonController extends Controller
             return null;
         }
 
-        return $this->scormTrackService->getUserResult($scoId, $userId);
+        return $this->scormTrackService->getUserResult($scoId, auth()->user()->id);
     }
 
     private function getScormFieldStrategy(string $version): ScormFieldStrategy
