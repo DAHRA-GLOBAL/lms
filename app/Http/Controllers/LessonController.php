@@ -3,12 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Models\Course;
+use App\Services\Contract\ScormTrackServiceContract;
+use App\Strategies\ScormFieldStrategy;
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use App\Http\Requests\StoreLessonRequest;
 use App\Models\Lesson;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Jambasangsang\Flash\Facades\LaravelFlash;
 use Peopleaps\Scorm\Manager\ScormManager;
 use Peopleaps\Scorm\Model\ScormModel;
+use Peopleaps\Scorm\Model\ScormScoModel;
+use Peopleaps\Scorm\Model\ScormScoTrackingModel;
 
 
 class LessonController extends Controller
@@ -17,12 +24,14 @@ class LessonController extends Controller
     /** @var ScormManager */
     private $scormManager;
 
+    private ScormTrackServiceContract $scormTrackService;
     /**
      * ScormController constructor.
      */
-    public function __construct( ScormManager $scormManager)
+    public function __construct( ScormManager $scormManager, ScormTrackServiceContract $scormTrackService)
     {
         $this->scormManager = $scormManager;
+        $this->scormTrackService = $scormTrackService;
     }
     /**
      * Display a listing of the resource.
@@ -59,10 +68,9 @@ class LessonController extends Controller
 
         $uploadedFile = $request->file('image');
         $scormModel = $this->scormManager->uploadScormArchive($uploadedFile);
-        $scormModel->resource_type = 'lesson';
-        $scormModel->resource_id = $request->id;
+        $scormModel->resource_type = 'App\Models\User';
+        $scormModel->resource_id = auth()->user()->id;
 
-        dd($scormModel);
         $lesson = Lesson::create($request->validated());
         $lesson->image  = uploadOrUpdateFile($request, $lesson->image, \constPath::LessonImage);
         $lesson->save();
@@ -79,7 +87,79 @@ class LessonController extends Controller
      */
     public function show($slug)
     {
-        return view('jambasangsang.backend.lessons.show', ['course' => Course::with('teacher:id,name,email', 'category:id,name', 'lessons')->whereSlug($slug)->first()]);
+        $courses = Course::with('lessons', 'teacher:id,name,email','category:id,name')->whereSlug($slug)->first();
+        return view('jambasangsang.backend.lessons.show', ['course' => $courses]);
+    }
+    public function play(string $uuid, Request $request): View
+    {
+        $data = $this->getScoViewDataByUuid(
+            $uuid,
+            $request->user() ? $request->user()->getKey() : null,
+            $request->bearerToken()
+        );
+        return view('scorm.player', ['data' => $data]);
+
+    }
+
+    public function getScoViewDataByUuid(string $scoUuid, int $userId = null, string $token = null): ScormScoModel
+    {
+        $data = $this->getScoByUuid($scoUuid);
+
+        return $this->getScormPlayerConfig($data, $userId, $token);
+    }
+
+    private function getScormPlayerConfig(ScormScoModel $data, int $userId = null, string $token = null): ScormScoModel
+    {
+        $cmi = $this->getScormTrackData($data, $userId);
+        $data['entry_url_absolute'] = Storage::disk(config('scorm.disk'))
+            ->url('/109fd072-7f03-4090-ab6e-782ce7fc1c4d/index_scorm.html'.$data->sco_parameters);
+        $data['version'] = $data->scorm->version;
+        $data['token'] = $token;
+        $data['lmsUrl'] = url('scorm/track');
+        $data['player'] = (object) [
+            'autoCommit' => (bool) $token,
+            'lmsCommitUrl' => $token ? url('scorm/track', $data->uuid) : false,
+            'xhrHeaders' => [
+                'Authorization' => $token ? ('Bearer '.$token) : null,
+            ],
+            'logLevel' => 1,
+            'autoProgress' => (bool) $token,
+            'cmi' => $cmi,
+        ];
+
+        return $data;
+    }
+    private function getScormTrackData(ScormScoModel $data, ?int $userId): array
+    {
+        return $this
+            ->getScormFieldStrategy($data->scorm->version)
+            ->getCmiData(
+                $this->getScormTrack($data->getKey(), $userId)
+            );
+    }
+    private function getScormTrack(int $scoId, ?int $userId): ?ScormScoTrackingModel
+    {
+        if (is_null($userId)) {
+            return null;
+        }
+
+        return $this->scormTrackService->getUserResult($scoId, $userId);
+    }
+
+    private function getScormFieldStrategy(string $version): ScormFieldStrategy
+    {
+        $scormVersion = Str::ucfirst(Str::camel($version));
+        $strategy = 'App\\Strategies\\'.$scormVersion.'FieldStrategy';
+
+        return new ScormFieldStrategy(new $strategy());
+    }
+
+    public function getScoByUuid($scoUuid)
+    {
+        return ScormScoModel::with('scorm')
+            ->where('uuid',$scoUuid)
+            ->firstOrCreate();
+
     }
 
     /**
