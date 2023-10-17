@@ -6,9 +6,11 @@ use App\Models\Course;
 use App\Services\Contract\ScormTrackServiceContract;
 use App\Strategies\ScormFieldStrategy;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use App\Http\Requests\StoreLessonRequest;
 use App\Models\Lesson;
+use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Jambasangsang\Flash\Facades\LaravelFlash;
@@ -75,6 +77,9 @@ class LessonController extends Controller
         $lesson->image  = uploadOrUpdateFile($request, $lesson->image, \constPath::LessonImage);
         $lesson->save();
 
+        $this->scormTrackService->updateScoTracking($scormModel->uuid, auth()->user()->id, ['cmi.core.lesson_status' => 'incomplete']);
+
+
         LaravelFlash::withSuccess('Lesson Created Successfully');
         return redirect()->route('courses.show', [$request->slug]);
     }
@@ -99,6 +104,45 @@ class LessonController extends Controller
         );
         return view('scorm.player', ['data' => $data]);
 
+    }
+
+    public function sendResponse($data, string $message = '', int $code = 200): JsonResponse
+    {
+        $body = [
+            'success' => $code >= 200 && $code < 300,
+            'message' => $message,
+        ];
+        if (!is_null($data)) {
+            $body['data'] = $data;
+        }
+        return Response::json($body, $code);
+    }
+
+    public function sendError(string $error = '', int $code = 404): JsonResponse
+    {
+        return $this->sendResponse(null, $error, $code);
+    }
+
+    public function sendSuccess(string $message = '', int $code = 200): JsonResponse
+    {
+        return $this->sendResponse(null, $message, $code);
+    }
+
+    public function set(Request $request, string $uuid): JsonResponse
+    {
+        $this->scormTrackService->updateScoTracking(
+            $uuid,
+            $request->user()->getKey(),
+            $request->input('cmi')
+        );
+
+        return $this->sendSuccess();
+    }
+
+    public function get(Request $request, int $scoId, string $key): JsonResponse
+    {
+        $data = $this->scormTrackService->getUserResultSpecifiedValue($key, $scoId, $request->user()->getKey());
+        return new JsonResponse($data);
     }
 
     public function getScoViewDataByUuid(string $scoUuid, int $userId = null, string $token = null): ScormScoModel

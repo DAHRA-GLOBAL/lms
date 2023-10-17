@@ -77,6 +77,8 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('/lessons/create/{slug}', [LessonController::class, 'create'])->name('lessons.create');
     Route::post('/image-upload', [LessonController::class, 'image-upload'])->name('lessons.image-upload');
     Route::get('/scorm/play/{uuid}',[LessonController::class,'play'])->name('scorm.play');
+    Route::post('/{uuid}', [LessonController::class, 'set']);
+    Route::get('/{scoId}/{key}', [LessonController::class, 'get']);
 
 
     Route::resource('events', EventController::class);
