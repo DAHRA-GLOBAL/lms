@@ -31,7 +31,7 @@
                         [CMIElement]: value
                     }
                 }
-
+                console.log(data);
                 post(data);
             });
 
@@ -48,6 +48,7 @@
                     cmi: window.API.cmi
                 }
 
+                console.log(data);
                 post(data);
             });
         }
@@ -84,9 +85,10 @@
         }
 
         function post(data) {
-            if (!token) {
-                return;
-            }
+            // if (!token) {
+            //     console.log("no token");
+            //     return;
+            // }
 
             fetch(settings.lmsUrl + '/' + settings.uuid, {
                 method: 'POST',
@@ -95,8 +97,10 @@
                     'Content-Type': 'application/json',
                     'Authorization': 'Bearer ' + token,
                 },
+
                 body: JSON.stringify(data)
             });
+            console.log("committed");
         }
 
         function get(key) {

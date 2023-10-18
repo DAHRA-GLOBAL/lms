@@ -77,7 +77,7 @@ class LessonController extends Controller
         $lesson->image  = uploadOrUpdateFile($request, $lesson->image, \constPath::LessonImage);
         $lesson->save();
 
-        $this->scormTrackService->updateScoTracking($scormModel->uuid, auth()->user()->id, ['cmi.core.lesson_status' => 'incomplete']);
+//        $this->scormTrackService->updateScoTracking($scormModel->uuid, auth()->user()->id, ['cmi.core.lesson_status' => 'incomplete']);
 
 
         LaravelFlash::withSuccess('Lesson Created Successfully');
@@ -99,7 +99,7 @@ class LessonController extends Controller
     {
         $data = $this->getScoViewDataByUuid(
             $uuid,
-            $request->user() ? $request->user()->getKey() : null,
+            auth()->user() ? auth()->user()->id : null,
             $request->bearerToken()
         );
         return view('scorm.player', ['data' => $data]);
@@ -130,18 +130,35 @@ class LessonController extends Controller
 
     public function set(Request $request, string $uuid): JsonResponse
     {
-        $this->scormTrackService->updateScoTracking(
-            $uuid,
-            $request->user()->getKey(),
-            $request->input('cmi')
+        $lessonStatusBefore = $request->input('cmi.core.lesson_status'); // Log the initial value
+
+        $allRequest = $request->all();
+//        $details = $this->scormTrackService->updateScoTracking(
+//            $uuid,
+//            auth()->user()->id,
+//            $request->all(),
+//        );
+        $details = $this->scormManager->updateScoTracking(
+            $request->uuid,
+            auth()->user()->id,
+            $allRequest
         );
+
+        $lessonStatusAfter = $details->lesson_status; // Log the value after processing
+        $userId = $details->user_id;
+
+        \Log::info('All the incoming request:', ['value' => $allRequest]);
+        \Log::info('Lesson Status Before:', ['value' => $lessonStatusBefore]);
+        \Log::info('Lesson Status After:', ['value' => $lessonStatusAfter]);
+        \Log::info('User Id After:', ['value' => $userId]);
 
         return $this->sendSuccess();
     }
 
     public function get(Request $request, int $scoId, string $key): JsonResponse
     {
-        $data = $this->scormTrackService->getUserResultSpecifiedValue($key, $scoId, $request->user()->getKey());
+        $data = $this->scormTrackService->getUserResultSpecifiedValue($key, $scoId, auth()->user()->id);
+
         return new JsonResponse($data);
     }
 
@@ -149,25 +166,28 @@ class LessonController extends Controller
     {
         $data = $this->getScoByUuid($scoUuid);
 
-        return $this->getScormPlayerConfig($data, $userId, $token);
+        return $this->getScormPlayerConfig($data, auth()->user()->id, $token);
     }
 
     private function getScormPlayerConfig(ScormScoModel $data, int $userId = null, string $token = null): ScormScoModel
     {
-        $cmi = $this->getScormTrackData($data, $userId);
+        $cmi = $this->getScormTrackData($data, auth()->user()->id);
         $data['entry_url_absolute'] = Storage::disk(config('scorm.disk'))
-            ->url('/109fd072-7f03-4090-ab6e-782ce7fc1c4d/index_scorm.html'.$data->sco_parameters);
+            ->url('c44b9d8f-da67-4b34-b7b7-25194bb9daa3/index_lms.html'.$data->sco_parameters);
         $data['version'] = $data->scorm->version;
         $data['token'] = $token;
-        $data['lmsUrl'] = url('scorm/track');
+        $data['lmsUrl'] = url('scorm/track/'. $data->uuid);
         $data['player'] = (object) [
-            'autoCommit' => (bool) $token,
+            'autoCommit' => true,
             'lmsCommitUrl' => $token ? url('scorm/track', $data->uuid) : url('scorm/track/'. $data->uuid),
             'xhrHeaders' => [
-                'Authorization' => $token ? ('Bearer '.$token) : null,
+                'Authorization' => $token ? ('Bearer '.$token) : auth()->user(),
             ],
             'logLevel' => 1,
-            'autoProgress' => (bool) $token,
+            'autoProgress' => true,
+            'enableProgress' => true,
+            'enableFinish' => true,
+            'enableSound' => true,
             'cmi' => $cmi,
         ];
 

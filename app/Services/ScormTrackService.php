@@ -177,65 +177,73 @@ class ScormTrackService implements ScormTrackServiceContract
             'passed' => 6,
         ];
 
+        if (isset($data['cmi.suspend_data']) && !empty($data['cmi.suspend_data'])) {
+            $tracking->setSuspendData($data['cmi.suspend_data']);
+        }
+
+        $scoreRaw = isset($data['cmi.core.score.raw']) ? intval($data['cmi.core.score.raw']) : $updateResult->score_raw;
+        $scoreMin = isset($data['cmi.core.score.min']) ? intval($data['cmi.core.score.min']) : $updateResult->score_min;
+        $scoreMax = isset($data['cmi.core.score.max']) ? intval($data['cmi.core.score.max']) : $updateResult->score_max;
+//                \Log::info('Checking lesson_status', ['lesson_status' =>  $data['cmi.core.lesson_status'] ?? 'unknown']);
+
+
+        $lessonStatus = $data['cmi.core.lesson_status'] ?? $updateResult->lesson_status;
+        $sessionTime = isset($data['cmi.core.session_time']) ? $data['cmi.core.session_time'] : null;
+        $sessionTimeInHundredth = $this->convertTimeInHundredth($sessionTime);
+        $progression = isset($data['cmi.progress_measure']) ? floatval($data['cmi.progress_measure']) : 0;
+
+        $entry = $data['cmi.core.entry'] ?? $updateResult->entry;
+        $exit = $data['cmi.core.exit'] ?? $updateResult->exit;
+        $lessonLocation = $data['cmi.core.lesson_location'] ?? $updateResult->lesson_location;
+        $totalTime = $data['cmi.core.total_time'] ?? 0;
+
+        $tracking->setDetails($data);
+        $tracking->setEntry($entry);
+        $tracking->setExitMode($exit);
+        $tracking->setLessonLocation($lessonLocation);
+        $tracking->setSessionTime($sessionTimeInHundredth);
+        $tracking->setLessonStatus($lessonStatus);
+
+
+        // Compute total time
+        $totalTimeInHundredth = $this->convertTimeInHundredth($totalTime);
+        $totalTimeInHundredth += $sessionTimeInHundredth;
+
+        // Persist total time
+        if ($tracking->getTotalTimeInt() > 0) {
+            $totalTimeInHundredth += $tracking->getTotalTimeInt();
+        }
+
+        $tracking->setTotalTime($totalTimeInHundredth, Scorm::SCORM_12);
+
+        $bestScore = $tracking->getScoreRaw();
+        $bestStatus = $tracking->getLessonStatus();
+
+
+        // Update best score if the current score is better than the previous best score
+
+        if (empty($bestScore) || (!is_null($scoreRaw) && (int)$scoreRaw > (int)$bestScore)) {
+            $tracking->setScoreRaw($scoreRaw);
+            $tracking->setScoreMin($scoreMin);
+            $tracking->setScoreMax($scoreMax);
+        }
+
+        if (empty($bestStatus) || ($lessonStatus !== $bestStatus && $statusPriority[$lessonStatus] > $statusPriority[$bestStatus])) {
+            $tracking->setLessonStatus($lessonStatus);
+            $bestStatus = $lessonStatus;
+        }
+
+        if (empty($progression) && ('completed' === $bestStatus || 'passed' === $bestStatus)) {
+            $progression = 100;
+        }
+
+        if ($progression > $tracking->getProgression()) {
+            $tracking->setProgression($progression);
+        }
+
+
         switch ($scorm->version) {
             case Scorm::SCORM_12:
-                if (isset($data['cmi.suspend_data']) && !empty($data['cmi.suspend_data'])) {
-                    $tracking->setSuspendData($data['cmi.suspend_data']);
-                }
-
-                $scoreRaw = isset($data['cmi.core.score.raw']) ? intval($data['cmi.core.score.raw']) : $updateResult->score_raw;
-                $scoreMin = isset($data['cmi.core.score.min']) ? intval($data['cmi.core.score.min']) : $updateResult->score_min;
-                $scoreMax = isset($data['cmi.core.score.max']) ? intval($data['cmi.core.score.max']) : $updateResult->score_max;
-                $lessonStatus = isset($data['cmi.core.lesson_status']) ? $data['cmi.core.lesson_status'] : 'unknown';
-                $sessionTime = isset($data['cmi.core.session_time']) ? $data['cmi.core.session_time'] : null;
-                $sessionTimeInHundredth = $this->convertTimeInHundredth($sessionTime);
-                $progression = isset($data['cmi.progress_measure']) ? floatval($data['cmi.progress_measure']) : 0;
-
-                $entry = $data['cmi.core.entry'] ?? $updateResult->entry;
-                $exit = $data['cmi.core.exit'] ?? $updateResult->exit;
-                $lessonLocation = $data['cmi.core.lesson_location'] ?? $updateResult->lesson_location;
-                $totalTime = $data['cmi.core.total_time'] ?? 0;
-
-                $tracking->setDetails($data);
-                $tracking->setEntry($entry);
-                $tracking->setExitMode($exit);
-                $tracking->setLessonLocation($lessonLocation);
-                $tracking->setSessionTime($sessionTimeInHundredth);
-
-                // Compute total time
-                $totalTimeInHundredth = $this->convertTimeInHundredth($totalTime);
-                $totalTimeInHundredth += $sessionTimeInHundredth;
-
-                // Persist total time
-                if ($tracking->getTotalTimeInt() > 0) {
-                    $totalTimeInHundredth += $tracking->getTotalTimeInt();
-                }
-
-                $tracking->setTotalTime($totalTimeInHundredth, Scorm::SCORM_12);
-
-                $bestScore = $tracking->getScoreRaw();
-                $bestStatus = $tracking->getLessonStatus();
-
-                // Update best score if the current score is better than the previous best score
-
-                if (empty($bestScore) || (!is_null($scoreRaw) && (int)$scoreRaw > (int)$bestScore)) {
-                    $tracking->setScoreRaw($scoreRaw);
-                    $tracking->setScoreMin($scoreMin);
-                    $tracking->setScoreMax($scoreMax);
-                }
-
-                if (empty($bestStatus) || ($lessonStatus !== $bestStatus && $statusPriority[$lessonStatus] > $statusPriority[$bestStatus])) {
-                    $tracking->setLessonStatus($lessonStatus);
-                    $bestStatus = $lessonStatus;
-                }
-
-                if (empty($progression) && ('completed' === $bestStatus || 'passed' === $bestStatus)) {
-                    $progression = 100;
-                }
-
-                if ($progression > $tracking->getProgression()) {
-                    $tracking->setProgression($progression);
-                }
 
                 break;
 
@@ -335,7 +343,9 @@ class ScormTrackService implements ScormTrackServiceContract
 
         $updateResult->save();
 
+
         return $updateResult;
+
     }
 
 
