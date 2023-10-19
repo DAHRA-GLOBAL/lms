@@ -173,7 +173,7 @@ class LessonController extends Controller
     {
         $cmi = $this->getScormTrackData($data, auth()->user()->id);
         $data['entry_url_absolute'] = Storage::disk(config('scorm.disk'))
-            ->url('c44b9d8f-da67-4b34-b7b7-25194bb9daa3/index_lms.html'.$data->sco_parameters);
+            ->url($data->scorm->uuid.'/index_scorm.html');
         $data['version'] = $data->scorm->version;
         $data['token'] = $token;
         $data['lmsUrl'] = url('scorm/track/'. $data->uuid);

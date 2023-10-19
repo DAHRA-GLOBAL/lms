@@ -90,7 +90,7 @@
             //     return;
             // }
 
-            fetch(settings.lmsUrl + '/' + settings.uuid, {
+            fetch(settings.lmsUrl, {
                 method: 'POST',
                 mode: 'cors',
                 headers: {
